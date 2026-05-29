@@ -1,15 +1,15 @@
-# Stage 1: Dependencies
+# Stage 1: Dependencies (all deps, including dev for build)
 FROM node:25-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Stage 2: Build
 FROM node:25-alpine AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json tsconfig.json next.config.ts ./
+COPY package.json package-lock.json tsconfig.json next.config.ts auth.ts ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY app/ ./app/
 COPY lib/ ./lib/
@@ -33,10 +33,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Install Prisma CLI for running migrations at startup
-COPY package.json package-lock.json ./
-RUN npm ci --include=dev --ignore-scripts && npm prune --omit=dev || \
-    npm install prisma --no-save
+# Install Prisma CLI globally for running migrations at startup
+RUN npm install -g prisma
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
