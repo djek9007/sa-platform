@@ -9,7 +9,7 @@ RUN npm ci
 FROM node:25-alpine AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json tsconfig.json next.config.ts auth.ts ./
+COPY package.json package-lock.json tsconfig.json next.config.ts auth.ts postcss.config.mjs ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY app/ ./app/
 COPY lib/ ./lib/
