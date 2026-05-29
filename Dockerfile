@@ -20,6 +20,9 @@ COPY public/ ./public/
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Prisma requires libssl on Alpine
+RUN apk add --no-cache openssl
+
 RUN npx prisma generate
 RUN npm run build
 
@@ -30,19 +33,21 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Prisma requires libssl on Alpine
+RUN apk add --no-cache openssl
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy Prisma CLI & related packages from builder (v5 matching project)
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Install Prisma CLI (matching project version) for migrations at startup
+RUN npm install prisma@5.22.0 --no-save
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+# Copy generated Prisma client (from builder's prisma generate)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy entrypoint
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
