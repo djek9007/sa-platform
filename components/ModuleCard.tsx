@@ -3,51 +3,84 @@ import type { Module } from "@/lib/types";
 
 interface ModuleCardProps {
   module: Module;
+  completedLessons?: string[];
+  completedModules?: string[];
 }
 
 /**
  * ModuleCard — A card component displaying a module summary.
  *
- * Shows the module number (with coloured badge), title, truncated description,
- * lesson count, and an assignment indicator if the module has one.
+ * Shows the module number, title, lesson count, and a dynamic progress
+ * indicator based on the user's actual completion data.
  * The entire card is wrapped in a Link pointing to `/course/{module.id}`.
+ *
+ * Progress states:
+ *   - Not started (no lessons completed)
+ *   - In progress (some lessons completed)
+ *   - Completed (all lessons completed, assignment optionally submitted)
  */
-export default function ModuleCard({ module }: ModuleCardProps) {
-  // Extract a short description (first ~80 chars of the full description)
-  const shortDescription =
-    module.description.length > 80
-      ? module.description.slice(0, 80) + "…"
-      : module.description;
+export default function ModuleCard({
+  module,
+  completedLessons = [],
+  completedModules = [],
+}: ModuleCardProps) {
+  // Count completed lessons for this module (lessonId = "moduleId/slug")
+  const moduleDone = completedLessons.filter((id) =>
+    id.startsWith(module.id + "/"),
+  ).length;
+
+  const total = module.lessonCount;
+  const fraction = total > 0 ? moduleDone / total : 0;
+  const assignmentSubmitted = completedModules.includes(module.id);
+
+  // Determine status
+  let statusLabel: string;
+  let statusColor: string;
+  let progressPercent: number;
+
+  if (moduleDone >= total && total > 0) {
+    statusLabel = assignmentSubmitted ? "✅ Завершён" : "🟢 Завершён";
+    statusColor = "text-green-600 dark:text-green-400";
+    progressPercent = 100;
+  } else if (moduleDone > 0) {
+    statusLabel = `🟡 ${moduleDone}/${total} уроков`;
+    statusColor = "text-amber-600 dark:text-amber-400";
+    progressPercent = Math.round(fraction * 100);
+  } else {
+    statusLabel = "🔴 Не начат";
+    statusColor = "text-gray-400 dark:text-gray-500";
+    progressPercent = 0;
+  }
 
   return (
     <Link
       href={`/course/${module.id}`}
       className="group block rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200"
     >
-      {/* Number badge */}
+      {/* Number badge + assignment label */}
       <div className="flex items-center justify-between mb-4">
         <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-sm">
           {module.id}
         </span>
 
-        {module.assignment && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            Задание
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {assignmentSubmitted && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-950 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Сдано
+            </span>
+          )}
+          {module.assignment && !assignmentSubmitted && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Задание
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Title */}
@@ -55,12 +88,28 @@ export default function ModuleCard({ module }: ModuleCardProps) {
         {module.title}
       </h3>
 
-      {/* Description */}
-      {module.description && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-          {shortDescription}
-        </p>
-      )}
+      {/* Progress bar */}
+      <div className="mb-3">
+        <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{
+              width: `${progressPercent}%`,
+              backgroundColor:
+                progressPercent === 100
+                  ? "rgb(34 197 94)"
+                  : progressPercent > 0
+                    ? "rgb(251 191 36)"
+                    : "rgb(156 163 175)",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Status label */}
+      <p className={`text-sm font-medium mb-3 ${statusColor}`}>
+        {statusLabel}
+      </p>
 
       {/* Lesson count */}
       <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
@@ -78,9 +127,7 @@ export default function ModuleCard({ module }: ModuleCardProps) {
           />
         </svg>
         <span>
-          {module.lessonCount === 1
-            ? "1 урок"
-            : `${module.lessonCount} уроков`}
+          {total === 1 ? "1 урок" : `${total} уроков`}
         </span>
       </div>
     </Link>

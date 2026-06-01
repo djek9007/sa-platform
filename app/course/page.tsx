@@ -1,23 +1,40 @@
 import { getCourseData } from "@/lib/course-parser";
+import { auth } from "@/auth";
+import { getProgress } from "@/lib/progress-service";
 import ModuleCard from "@/components/ModuleCard";
 
 /**
  * Course overview page — Server Component.
  *
- * Fetches all modules via getCourseData() and renders them in a responsive
- * card grid. Each card links to /course/{module.id}.
+ * Fetches all modules via getCourseData() and the current user's progress
+ * (if authenticated), then renders module cards with dynamic progress
+ * indicators.
  *
  * Route: /course
  */
 export default async function CoursePage() {
   const courseData = await getCourseData();
 
+  // Fetch progress for authenticated users
+  const session = await auth();
+  let completedLessons: string[] = [];
+  let completedModules: string[] = [];
+
+  if (session?.user?.id) {
+    try {
+      const progress = await getProgress(session.user.id);
+      completedLessons = progress.completedLessons;
+      completedModules = progress.completedModules;
+    } catch {
+      // Silently fall back to no progress data
+    }
+  }
+
   // Sort modules by their natural order (01, 02, …, 09)
   const modules = [...courseData.modules].sort(
     (a, b) => a.order - b.order,
   );
 
-  // Derive subtitle text from actual data
   const totalModules = courseData.totalModules;
 
   return (
@@ -43,7 +60,12 @@ export default async function CoursePage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {modules.map((mod) => (
-            <ModuleCard key={mod.id} module={mod} />
+            <ModuleCard
+              key={mod.id}
+              module={mod}
+              completedLessons={completedLessons}
+              completedModules={completedModules}
+            />
           ))}
         </div>
       )}
