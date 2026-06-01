@@ -5,6 +5,7 @@ import type { Lesson } from "@/lib/types";
 import CourseSidebar from "@/components/CourseSidebar";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import ModuleMedia from "@/components/ModuleMedia";
+import AssignmentForm from "@/components/AssignmentForm";
 
 /**
  * Assignment page — Server Component.
@@ -132,8 +133,14 @@ export default async function AssignmentPage({
             </div>
           </article>
 
+          {/* Assignment Form — student answer + AI evaluation */}
+          <AssignmentForm
+            moduleId={moduleId}
+            assignmentTitle={assignment.title}
+          />
+
           {/* Navigation back to module */}
-          <nav className="border-t border-gray-200 dark:border-gray-800 pt-6">
+          <nav className="border-t border-gray-200 dark:border-gray-800 pt-6 mt-8">
             <div className="flex justify-between items-center">
               <Link
                 href={`/course/${moduleId}`}

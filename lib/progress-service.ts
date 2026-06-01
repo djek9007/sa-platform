@@ -25,11 +25,23 @@ export async function markLessonComplete(userId: string, lessonId: string) {
 export async function submitAssignment(
   userId: string,
   moduleId: string,
-  content: string
+  content: string,
+  feedback?: string,
+  score?: number
 ) {
   return prisma.assignmentSubmission.upsert({
     where: { userId_moduleId: { userId, moduleId } },
-    update: { content },
-    create: { userId, moduleId, content },
+    update: {
+      content,
+      ...(feedback !== undefined ? { feedback, evaluatedAt: new Date() } : {}),
+      ...(score !== undefined ? { score } : {}),
+    },
+    create: {
+      userId,
+      moduleId,
+      content,
+      ...(feedback !== undefined ? { feedback, evaluatedAt: new Date() } : {}),
+      ...(score !== undefined ? { score } : {}),
+    },
   });
 }

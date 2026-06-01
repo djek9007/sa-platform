@@ -53,3 +53,19 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
 }
+
+export interface EvaluationCriterion {
+  name: string;
+  score: number;
+  maxScore: number;
+  feedback: string;
+}
+
+export interface EvaluationResult {
+  overallScore: number;
+  maxScore: number;
+  criteria: EvaluationCriterion[];
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+}

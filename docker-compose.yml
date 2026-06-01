@@ -25,12 +25,15 @@ services:
       dockerfile: Dockerfile
     container_name: sa-platform-app
     restart: unless-stopped
+    volumes:
+      - ../sa-course:/app/sa-course
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://sa_platform:${DB_PASSWORD}@postgres:5432/sa_platform
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - COURSE_PATH=/app/sa-course
     depends_on:
       postgres:
         condition: service_healthy

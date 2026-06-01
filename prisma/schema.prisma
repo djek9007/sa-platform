@@ -38,6 +38,9 @@ model AssignmentSubmission {
   userId     String
   moduleId   String   // "01", "02", etc.
   content    String
+  feedback   String?  // AI evaluation feedback (JSON)
+  score      Float?   // AI score (0-10)
+  evaluatedAt DateTime? // When AI evaluated
   submittedAt DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
