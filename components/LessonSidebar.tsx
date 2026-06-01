@@ -132,7 +132,9 @@ export default function LessonSidebar({
           <div className="px-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
             <Link
               href={`/course/${module.id}/assignment`}
-              className="sidebar-link flex items-center gap-3 text-sm"
+              className={`sidebar-link flex items-center gap-3 text-sm ${
+                currentLessonSlug === "assignment" ? "active" : ""
+              }`}
               onClick={() => setIsOpen(false)}
             >
               <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400">

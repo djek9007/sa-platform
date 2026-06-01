@@ -38,6 +38,9 @@ export default async function ModulePage({
         slug: l.slug,
         title: l.title,
       })),
+      assignment: m.assignment
+        ? { slug: m.assignment.slug, title: m.assignment.title }
+        : undefined,
     }));
 
   // Sort lessons by order

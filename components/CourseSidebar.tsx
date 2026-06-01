@@ -8,6 +8,8 @@ interface SidebarModule {
   title: string;
   slug: string;
   lessons?: { slug: string; title: string }[];
+  /** Optional assignment metadata for sidebar link */
+  assignment?: { slug: string; title: string };
 }
 
 interface CourseSidebarProps {
@@ -148,6 +150,36 @@ export default function CourseSidebar({
                         {lesson.title}
                       </Link>
                     ))}
+                    {/* Assignment link */}
+                    {mod.assignment && (
+                      <Link
+                        href={`/course/${mod.id}/${mod.assignment.slug}`}
+                        className={`sidebar-link text-sm ${
+                          currentModuleId === mod.id &&
+                          currentLessonSlug === mod.assignment.slug
+                            ? "active"
+                            : ""
+                        }`}
+                        onClick={() => setIsMobileOpen(false)}
+                      >
+                        <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          {mod.assignment.title}
+                        </span>
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>

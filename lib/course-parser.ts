@@ -16,8 +16,54 @@ import type { CourseData, Module, Lesson, Assignment, MediaItem } from './types'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-/** Relative path from sa-platform/ to sa-course/ (sibling directories) */
-const COURSE_ROOT = path.join(process.cwd(), '..', 'sa-course');
+// ─── Course Root Resolution ─────────────────────────────────────────────────
+
+/**
+ * Resolves the path to the sa-course/ directory.
+ *
+ * Priority:
+ *   1. COURSE_PATH env var (explicit override)
+ *   2. ../sa-course  (dev: cwd = project root)
+ *   3. ../../sa-course  (standalone: cwd = .next/standalone)
+ *   4. ./sa-course  (docker: cwd = /app, course bundled beside)
+ *
+ * Returns the first existing directory; falls back to option 2 as default.
+ */
+async function resolveCourseRoot(): Promise<string> {
+  if (process.env.COURSE_PATH) {
+    return path.resolve(process.env.COURSE_PATH);
+  }
+
+  const candidates = [
+    path.resolve(process.cwd(), '..', 'sa-course'),           // dev: cwd = project root
+    path.resolve(process.cwd(), '..', '..', 'sa-course'),      // docker: cwd = /app
+    path.resolve(process.cwd(), 'sa-course'),                  // docker: cwd = /app, course at /app/sa-course
+    path.resolve(process.cwd(), '..', '..', '..', 'sa-course'), // standalone: cwd = .next/standalone
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const stat = await import('fs/promises').then(m => m.stat(candidate));
+      if (stat.isDirectory()) return candidate;
+    } catch {
+      // not found — try next
+    }
+  }
+
+  return candidates[0];
+}
+
+let courseRootPromise: Promise<string> | null = null;
+
+/** Lazily resolves COURSE_ROOT (once) and caches the result. */
+function getCourseRoot(): Promise<string> {
+  if (!courseRootPromise) {
+    courseRootPromise = resolveCourseRoot();
+  }
+  return courseRootPromise;
+}
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 /** Matches module directory names: "01-introduction-to-sa" → groups: ["01", "introduction-to-sa"] */
 const MODULE_DIR_PATTERN = /^(\d{2})-(.+)$/;
@@ -48,7 +94,8 @@ const SYLLABUS_MODULE_PATTERN = /### Модуль (\d{2}):\s*(.+)/g;
 async function buildModuleTitleMap(): Promise<Map<string, string>> {
   const titles = new Map<string, string>();
   try {
-    const syllabusPath = path.join(COURSE_ROOT, 'syllabus.md');
+    const courseRoot = await getCourseRoot();
+    const syllabusPath = path.join(courseRoot, 'syllabus.md');
     const content = await readFile(syllabusPath, 'utf-8');
 
     let match: RegExpExecArray | null;
@@ -73,7 +120,7 @@ async function buildModuleTitleMap(): Promise<Map<string, string>> {
 async function scanModuleDirectories(): Promise<string[]> {
   let entries;
   try {
-    entries = await readdir(COURSE_ROOT, { withFileTypes: true });
+    entries = await readdir(await getCourseRoot(), { withFileTypes: true });
   } catch {
     return [];
   }
@@ -437,9 +484,10 @@ export async function getCourseData(): Promise<CourseData> {
     scanModuleDirectories(),
   ]);
 
+  const courseRoot = await getCourseRoot();
   const modules: Module[] = [];
   for (const dirName of moduleDirs) {
-    const dirPath = path.join(COURSE_ROOT, dirName);
+    const dirPath = path.join(courseRoot, dirName);
     const mod = await parseModule(dirPath, dirName, titleMap);
     if (mod) {
       modules.push(mod);
@@ -472,7 +520,8 @@ export async function getModule(moduleId: string): Promise<Module | null> {
   const dirName = moduleDirs.find(d => d.startsWith(moduleId));
   if (!dirName) return null;
 
-  const dirPath = path.join(COURSE_ROOT, dirName);
+  const courseRoot = await getCourseRoot();
+  const dirPath = path.join(courseRoot, dirName);
   return parseModule(dirPath, dirName, titleMap);
 }
 

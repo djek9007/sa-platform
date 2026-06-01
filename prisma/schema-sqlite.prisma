@@ -1,0 +1,60 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "./generated-sqlite"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lessonsProgress   LessonProgress[]
+  assignmentSubms   AssignmentSubmission[]
+  chatMessages      ChatMessage[]
+}
+
+model LessonProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model AssignmentSubmission {
+  id         String   @id @default(cuid())
+  userId     String
+  moduleId   String
+  content    String
+  submittedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  role      String
+  content   String
+  lessonContext String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
