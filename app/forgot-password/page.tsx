@@ -1,45 +1,54 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setMessage("");
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
     const email = form.get("email") as string;
-    const password = form.get("password") as string;
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-    if (result?.error) {
-      setError("Неверный email или пароль");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Ошибка запроса");
+        return;
+      }
+
+      setMessage(data.message);
+    } catch {
+      setError("Ошибка соединения");
+    } finally {
       setLoading(false);
-    } else {
-      router.push("/course");
-      router.refresh();
     }
   }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-8">
-          Войти в аккаунт
+        <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-2">
+          Восстановление пароля
         </h1>
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-8">
+          Введите email, указанный при регистрации — мы отправим ссылку для
+          сброса пароля
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -56,26 +65,12 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Пароль
-              </label>
-              <Link href="/forgot-password" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                Забыли пароль?
-              </Link>
-            </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-          </div>
-
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          )}
+
+          {message && (
+            <p className="text-sm text-green-600 dark:text-green-400">{message}</p>
           )}
 
           <button
@@ -83,14 +78,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? "Вход..." : "Войти"}
+            {loading ? "Отправка..." : "Отправить ссылку"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          Нет аккаунта?{" "}
-          <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
-            Зарегистрироваться
+          <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
+            Вернуться ко входу
           </Link>
         </p>
       </div>
